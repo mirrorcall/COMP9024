@@ -1,0 +1,10 @@
+# mac index file
+.DS_Store
+
+# executable files
+p1/problema
+p1/problemb
+p2/problem
+
+# object files
+p1/*.o
