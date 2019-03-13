@@ -1,0 +1,118 @@
+#!/bin/bash
+
+# Chris LY
+# COMP9024 - Data Structures and Algorithms
+# 13/03/2019
+# Autotesting file for the first COMP9024 assignment
+
+suffix=".txt"
+pass=0
+
+function echo_n_run()
+{
+	echo "$@"; eval $@
+}
+
+function run_test()
+{
+	for (( i = $1; i <= $2; i++ )); do
+		tfname="test${i}${suffix}"
+		afname="answ${i}${suffix}"
+		sfname="sol${i}${suffix}"
+		if [[ "$3" == "stdin" ]]; then
+			./MyDLList "stdin" < $tfname > $afname
+			diff -q $tfname $afname
+			if [[ $? -eq 0 ]]; then
+				echo -e "Test $i passed."
+				((pass++))
+			else
+				echo -e "Test $i failed."
+			fi
+		else
+			./MyDLList $tfname > $afname
+			diff -q $sfname $afname
+			if [[ $? -eq 0 ]]; then
+				echo -e "Test $i passed."
+				((pass++))
+			else
+				echo -e "Test $i failed."
+			fi
+		fi	
+	done
+}
+
+function next_test()
+{
+	for (( i = $1; i <= $2; i++ )); do
+		diff -q <(sort "answ${i}.txt") <(sort "sol${i}.txt")
+		if [[ $? -eq 0 ]]; then
+			echo -e "Test $i passed."
+			((pass++))
+		else
+			echo -e "Test $i failed."
+		fi
+	done
+}
+
+if [[ ! -f MyDLList.c ]]; then
+	echo -e "Missing MyDLList.c."
+	exit 1
+fi
+
+echo_n_run "gcc -Werror -Wall -o  MyDLList MyDLList.c"
+
+echo -e "Generating random numbers from python random module."
+echo_n_run python3 generator.py
+if [[ $? -ne 0 ]]; then
+	echo -e "Failed loading python script, using test files in the package instead."
+fi
+
+echo -e "--------------------------------------------------------"
+echo -e "The first three tests are feeding input from stdin."
+run_test 1 3 stdin
+echo -e "--------------------------------------------------------"
+echo -e "The follwoing three tests are feeding input from a file."
+run_test 4 6 file
+echo -e "You can redo the test[1-6] N by diff answN.txt testN.txt."
+echo -e "--------------------------------------------------------"
+echo -e "Preparing solution text files from python script."
+python3 checker.py
+if [[ $? -ne 0 ]]; then
+	echo -e "Failed loading python script, using test files in the package instead."
+fi
+echo -e "The next three tests are running function setUnion"
+./MyDLList "union" answ1.txt answ2.txt > answ7.txt
+./MyDLList "union" answ3.txt answ4.txt > answ8.txt
+./MyDLList "union" answ5.txt answ6.txt > answ9.txt
+next_test 7 9
+echo -e "--------------------------------------------------------"
+echo -e "The final three tests are running function setIntersection"
+./MyDLList "inter" answ1.txt answ2.txt > answ10.txt
+./MyDLList "inter" answ3.txt answ4.txt > answ11.txt
+./MyDLList "inter" answ5.txt answ6.txt > answ12.txt
+next_test 10 12
+echo -e "--------------------------------------------------------"
+echo -e "**********************************"
+echo -e "*                                *"
+echo -e "*       Passed $pass/12             *"
+echo -e "*                                *"
+echo -e "**********************************"
+msg="Preparing memory leak test using valgrind."
+emsg="Could not initialise memory leak test using \033[0;31mvalgrind\033[0m.\n"
+emsg="${emsg}Download valgrind if you want to test memory leak."
+valgrind --version > /dev/null
+ret=$?
+if [[ $ret -eq 0 ]]; then
+	echo -e $msg
+else
+	echo -e $emsg 1>&2
+	exit $ret
+fi
+
+valgrind --leak-check=yes --log-file="mem.output" ./MyDLList "stdin" < File1.txt > /dev/null
+egrep --color "(definitely lost|indirectly lost|possibly lost): " "mem.output"
+echo -e "\nYou can catch more details by \033[0;31mcat mem.output\033[0m."
+echo -e "Your output can be found in output.txt."
+
+echo -e "Remember to put up your time complexity analysis!!!"
+echo -e "\033[0;31mDo not forget to overwrite the main function with your own testing.\033[0m"
