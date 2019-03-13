@@ -1,0 +1,35 @@
+==7757== Memcheck, a memory error detector
+==7757== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==7757== Using Valgrind-3.14.0 and LibVEX; rerun with -h for copyright info
+==7757== Command: ./MyDLList stdin
+==7757== Parent PID: 7702
+==7757== 
+--7757-- run: /usr/bin/dsymutil "./MyDLList"
+==7757== 
+==7757== HEAP SUMMARY:
+==7757==     in use at exit: 87,869 bytes in 188 blocks
+==7757==   total heap usage: 277 allocs, 89 frees, 98,377 bytes allocated
+==7757== 
+==7757== 2,064 bytes in 1 blocks are possibly lost in loss record 58 of 62
+==7757==    at 0x100009522: malloc_zone_malloc (in /usr/local/Cellar/valgrind/3.14.0/lib/valgrind/vgpreload_memcheck-amd64-darwin.so)
+==7757==    by 0x1004FBEFD: _objc_copyClassNamesForImage (in /usr/lib/libobjc.A.dylib)
+==7757==    by 0x1004EF182: protocols() (in /usr/lib/libobjc.A.dylib)
+==7757==    by 0x1004EF093: readClass(objc_class*, bool, bool) (in /usr/lib/libobjc.A.dylib)
+==7757==    by 0x1004ECC13: gc_init (in /usr/lib/libobjc.A.dylib)
+==7757==    by 0x1004F424E: objc_initializeClassPair_internal(objc_class*, char const*, objc_class*, objc_class*) (in /usr/lib/libobjc.A.dylib)
+==7757==    by 0x100501132: layout_string_create (in /usr/lib/libobjc.A.dylib)
+==7757==    by 0x1004EF83C: realizeClass(objc_class*) (in /usr/lib/libobjc.A.dylib)
+==7757==    by 0x1004EF300: copySwiftV1MangledName(char const*, bool) (in /usr/lib/libobjc.A.dylib)
+==7757==    by 0x1004EF2E9: copySwiftV1MangledName(char const*, bool) (in /usr/lib/libobjc.A.dylib)
+==7757==    by 0x1004EF2E9: copySwiftV1MangledName(char const*, bool) (in /usr/lib/libobjc.A.dylib)
+==7757==    by 0x1004EF2E9: copySwiftV1MangledName(char const*, bool) (in /usr/lib/libobjc.A.dylib)
+==7757== 
+==7757== LEAK SUMMARY:
+==7757==    definitely lost: 0 bytes in 0 blocks
+==7757==    indirectly lost: 0 bytes in 0 blocks
+==7757==      possibly lost: 2,064 bytes in 1 blocks
+==7757==    still reachable: 0 bytes in 0 blocks
+==7757==         suppressed: 85,805 bytes in 187 blocks
+==7757== 
+==7757== For counts of detected and suppressed errors, rerun with: -v
+==7757== ERROR SUMMARY: 1 errors from 1 contexts (suppressed: 14 from 14)
