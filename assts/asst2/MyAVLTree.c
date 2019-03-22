@@ -366,10 +366,12 @@ void FreeAVLTree(AVLTree *T)
 // helper fucntion - print each node out of the tree
 void PrintAVLTreeNodes(AVLTreeNode *node)
 {
-     if (node == NULL) return;
-     if (node)
+     if (!node) return;
+     else
      {
-          
+          PrintAVLTreeNodes(node->left);
+          printf("(%d, %d)\n", node->key, node->value);
+          PrintAVLTreeNodes(node->right);
      }
 }
 
