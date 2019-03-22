@@ -1,0 +1,14 @@
+#!/bin/bash
+
+function echo_n_run
+{
+	echo "$@"; eval $@
+}
+
+echo_n_run "gcc -Werror -Wall -g -D DEBUG -D PRINT -o MyAVLTree MyAVLTree.c"
+
+if [[ $? -ne 0 ]]; then
+	exit 1
+fi
+
+echo_n_run "./MyAVLTree"
