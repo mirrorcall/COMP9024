@@ -29,18 +29,19 @@ typedef struct AVLTreeNode
     int  	value;  	// value (int) of this item 
     int 	height; 	// height of the subtree rooted at this node
     struct AVLTreeNode 
-    *parent; 	// pointer to parent
+          *parent; 	// pointer to parent
     struct AVLTreeNode 
-    *left; 		// pointer to left child
+          *left; 		// pointer to left child
     struct AVLTreeNode 
-    *right;		// pointer to right child
+          *right;		// pointer to right child
 } AVLTreeNode;
 
 // data type for AVL trees
 typedef struct AVLTree
 {
     int 		size;	// count of items in avl tree
-    AVLTreeNode *root; 	// root
+    AVLTreeNode
+            *root; 	// root
 } AVLTree;
 
 // data type for ASCII Tree Printer
@@ -48,9 +49,9 @@ typedef struct ATPnode
 {
     int 		vaule;
     struct ATPnode 
-    *left;
+            *left;
     struct ATPnode 
-    *right;
+            *right;
 } ATPnode;
 
 /************** Forward References **************/
@@ -66,7 +67,7 @@ AVLTreeNode *Search(AVLTree *T, int k, int v);
 void FreeAVLTree(AVLTree *T);
 void PrintAVLTree(AVLTree *T);
 
-/************** Function Definition **************/
+/************** Function Defnition **************/
 // create a new AVLTreeNode
 AVLTreeNode *newAVLTreeNode(int k, int v )
 {
@@ -193,14 +194,14 @@ int HeightDiffer(AVLTreeNode *node)
 AVLTreeNode *RotateRight(AVLTreeNode *z)
 {
     AVLTreeNode *y = z->left;
-    AVLTreeNode *s = y->right;        // left child of y must be of height of 0 
+    AVLTreeNode *s = y->right;    // left child of y must be of height of 0 
 
     // redirecting
     y->right = z;
     z->left  = s;
 
     // updating height
-    // TODO: check here
+    // TODO: check updated heights 
     y->height = Height(y) - 1;
     z->height = Height(z) - 1;
 
@@ -267,9 +268,6 @@ void RecurInsert(AVLTreeNode **node, int k, int v)
      * rebalance the tree
      * HeightDiffer is the difference between left and right
      */
-    printf("differ %d\n", HeightDiffer(*node));
-    printf("key %d %d\n", k, (*node)->right != NULL ? (*node)->right->key : -1);
-    if (HeightDiffer((*node)) > 1 && LTK(k, (*node)->left))
     { 
         (*node) = RotateRight((*node));
     }
