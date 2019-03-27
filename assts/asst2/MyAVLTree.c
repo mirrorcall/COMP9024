@@ -186,6 +186,10 @@ int Height(AVLTreeNode *node)
     return( MAX(lheight, rheight) + 1 );
 }
 
+// !!Returning height difference between the left child of the node and the
+// !!right child of it.
+// !!return positive integer if left child has deeper depth
+// !!return negative integer if right child has deeper depth
 int HeightDiffer(AVLTreeNode *node)
 {
     return( Height(node->left) - Height(node->right) );
@@ -264,27 +268,34 @@ void RecurInsert(AVLTreeNode **node, int k, int v)
         }
         else exit(EXIT_FAILURE);	// THIS SHOULD NOT HAPPEN
     }
-    /*
-     * rebalance the tree
-     * HeightDiffer is the difference between left and right
-     */
-    { 
-        (*node) = RotateRight((*node));
-    }
-    else if (HeightDiffer((*node)) < -1 && GTK(k, (*node)->right))
+
+    // rebalancing the tree - taking minor key (value) into consideration
+    if (HeightDiffer(*node) > 1)
     {
-        (*node) = RotateLeft((*node));
+        if ((*node)->left->left && EQ(k, v, (*node)->left->left))
+        {   // single rotation
+            (*node) = RotateRight(*node);
+        }
+        else if ((*node)->left->right && EQ(k, v, (*node)->left->right))
+        {   // double rotation
+            (*node)->left = RotateLeft((*node)->left);
+            (*node) = RotateRight((*node));
+        }
+ 
     }
-    else if (HeightDiffer(*node) < -1 && LTK(k, (*node)->right))
+    else if (HeightDiffer(*node) < -1)
     {
-        (*node)->right = RotateRight((*node)->right);
-        (*node) = RotateLeft((*node));
+        if ((*node)->right->right && EQ(k, v, (*node)->right->right))
+        {   // single rotation
+            (*node) = RotateLeft(*node);
+        }
+        else if ((*node)->right->left && EQ(k, v, (*node)->right->left))
+        {   // double rotation
+            (*node)->right = RotateRight((*node)->right);
+            (*node) = RotateLeft(*node);
+        }
     }
-    else if (HeightDiffer(*node) > 1 && GTK(k, (*node)->left))
-    {
-        (*node)->left = RotateLeft((*node)->left);
-        (*node) = RotateRight((*node));
-    }
+
 }
 
 // put the time complexity analysis for InsertNode() here
@@ -524,15 +535,13 @@ int main() //sample main for testing
 #ifdef PRINT
     ASCIITreePrinter(tree1);
 #endif
-    printf("%d %d\n", MinValueNode(tree1->root)->key, MinValueNode(tree1->root)->value);
     printf("tree 1 of size: %d\n", tree1->size);
-    DeleteNode(tree1, 50, 2);
-    DeleteNode(tree1, -17, 34);
-    DeleteNode(tree1, -19, 92);
-    DeleteNode(tree1, -2, 29);
-    DeleteNode(tree1, 2, 1);
-    DeleteNode(tree1, 2, 50);
-    printf("%d %d\n", MinValueNode(tree1->root)->key, MinValueNode(tree1->root)->value);
+    /* DeleteNode(tree1, 50, 2); */
+    /* DeleteNode(tree1, -17, 34); */
+    /* DeleteNode(tree1, -19, 92); */
+    /* DeleteNode(tree1, -2, 29); */
+    /* DeleteNode(tree1, 2, 1); */
+    /* DeleteNode(tree1, 2, 50); */
     tree2=CloneAVLTree(tree1);
 
 #ifdef PRINT
