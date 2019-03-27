@@ -269,7 +269,11 @@ void RecurInsert(AVLTreeNode **node, int k, int v)
         else exit(EXIT_FAILURE);	// THIS SHOULD NOT HAPPEN
     }
 
-    // rebalancing the tree - taking minor key (value) into consideration
+    /*
+     * rebalancing the tree - taking minor key (value) into consideration
+     * instead of using key indicate its location,
+     * rotation using comparison to find the specific child
+     */
     if (HeightDiffer(*node) > 1)
     {
         if ((*node)->left->left && EQ(k, v, (*node)->left->left))
