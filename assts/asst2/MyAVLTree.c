@@ -18,21 +18,21 @@
 #define EQK(k, n)	(( k == n->key) ? 1 : 0)
 #define LTK(k, n)	(( k <  n->key) ? 1 : 0)
 #define GTK(k, n)	(( k >  n->key) ? 1 : 0)
-#define LTV(k, n)	(( k <  n->value) ? 1 : 0)
-#define GTV(k, n)	(( k >  n->value) ? 1 : 0)
-// unguard macros - require exactly b of type AVLTreeNode
+#define LTV(v, n)	(( v <  n->value) ? 1 : 0)
+#define GTV(v, n)	(( v >  n->value) ? 1 : 0)
+                  // unguard macros - require exactly n of type AVLTreeNode
 
 // data type for avl tree nodes
 typedef struct AVLTreeNode
 {
     int 	key; 		// key of this item
-    int  	value;  	// value (int) of this item 
+    int  	value;  	// value (int) of this item
     int 	height; 	// height of the subtree rooted at this node
-    struct AVLTreeNode 
+    struct AVLTreeNode
           *parent; 	// pointer to parent
-    struct AVLTreeNode 
+    struct AVLTreeNode
           *left; 		// pointer to left child
-    struct AVLTreeNode 
+    struct AVLTreeNode
           *right;		// pointer to right child
 } AVLTreeNode;
 
@@ -48,9 +48,9 @@ typedef struct AVLTree
 typedef struct ATPnode
 {
     int 		vaule;
-    struct ATPnode 
+    struct ATPnode
             *left;
-    struct ATPnode 
+    struct ATPnode
             *right;
 } ATPnode;
 
@@ -150,7 +150,7 @@ AVLTree *CloneAVLTree(AVLTree *T)
 
   	return dest;
 }
- 
+
 // put your time complexity for ALVTreesUNion() here
 AVLTree *AVLTreesUnion(AVLTree *T1, AVLTree *T2)
 {
@@ -159,7 +159,7 @@ AVLTree *AVLTreesUnion(AVLTree *T1, AVLTree *T2)
 
     return root;
 }
- 
+
 // put your time complexity for ALVTreesIntersection() here
 AVLTree *AVLTreesIntersection(AVLTree *T1, AVLTree *T2)
 {
@@ -197,15 +197,15 @@ int HeightDiffer(AVLTreeNode *node)
 
 AVLTreeNode *RotateRight(AVLTreeNode *z)
 {
+    printf("Perfroming Rotation Right with k,v : %d,%d\n", z->key, z->value);
     AVLTreeNode *y = z->left;
-    AVLTreeNode *s = y->right;    // left child of y must be of height of 0 
+    AVLTreeNode *s = y->right;    // left child of y must be of height of 0
 
     // redirecting
     y->right = z;
     z->left  = s;
 
-    // updating height
-    // TODO: check updated heights 
+    // TODO: check updated heights
     y->height = Height(y) - 1;
     z->height = Height(z) - 1;
 
@@ -214,14 +214,15 @@ AVLTreeNode *RotateRight(AVLTreeNode *z)
 
 AVLTreeNode *RotateLeft(AVLTreeNode *z)
 {
+    printf("Performing Rotation Left with k,v : %d,%d\n", z->key, z->value);
     AVLTreeNode *y = z->right;
-    AVLTreeNode *s = y->left;        // left child of y must be of height of 0 
+    AVLTreeNode *s = y->left;        // left child of y must be of height of 0
 
     // redirecting
     y->left  = z;
     z->right = s;
 
-    // TODO: check updated heights 
+    // TODO: check updated heights
     y->height = Height(y) - 1;
     z->height = Height(z) - 1;
 
@@ -231,7 +232,7 @@ AVLTreeNode *RotateLeft(AVLTreeNode *z)
 // helper fucntion - insert each node recursively
 void RecurInsert(AVLTreeNode **node, int k, int v)
 {
-    if (*node == NULL)
+    if (!*node)
     {
         *node = newAVLTreeNode(k, v);
         return;
@@ -274,29 +275,48 @@ void RecurInsert(AVLTreeNode **node, int k, int v)
      * instead of using key indicate its location,
      * rotation using comparison to find the specific child
      */
+    printf("differ: %d | k, v: %d,%d\n", HeightDiffer(*node), (*node)->key, (*node)->value);
+    printf("%d %d\n", v, ((*node)->right == NULL) ? -1 : (*node)->right->value);
     if (HeightDiffer(*node) > 1)
     {
-        if ((*node)->left->left && EQ(k, v, (*node)->left->left))
-        {   // single rotation
-            (*node) = RotateRight(*node);
-        }
-        else if ((*node)->left->right && EQ(k, v, (*node)->left->right))
-        {   // double rotation
+        if (LTK(k, (*node)->left))
+            (*node) = RotateRight((*node));
+        else if (GTK(k, (*node)->left))
+        {
             (*node)->left = RotateLeft((*node)->left);
             (*node) = RotateRight((*node));
         }
- 
+        else if (EQK(k, (*node)->left))    // dealing with the minor key - value
+        {
+            if (LTV(v, (*node)->left))
+            {
+                (*node) = RotateRight((*node));
+            }
+            else if (GTV(v, (*node)->left))
+            {
+                (*node)->left = RotateLeft((*node)->left);
+                (*node) = RotateRight((*node));
+            }
+        }
     }
     else if (HeightDiffer(*node) < -1)
     {
-        if ((*node)->right->right && EQ(k, v, (*node)->right->right))
-        {   // single rotation
-            (*node) = RotateLeft(*node);
-        }
-        else if ((*node)->right->left && EQ(k, v, (*node)->right->left))
-        {   // double rotation
+        if (GTK(k, (*node)->right))
+            (*node) = RotateLeft((*node));
+        else if (LTK(k, (*node)->right))
+        {
             (*node)->right = RotateRight((*node)->right);
-            (*node) = RotateLeft(*node);
+            (*node) = RotateLeft((*node));
+        }
+        else if (EQK(k, (*node)->right))
+        {
+            if (GTV(v, (*node)->right))
+                (*node) = RotateLeft((*node));
+            else if (LTV(v, (*node)->right))
+            {
+                (*node)->right = RotateRight((*node)->right);
+                (*node) = RotateLeft((*node));
+            }
         }
     }
 
@@ -304,13 +324,13 @@ void RecurInsert(AVLTreeNode **node, int k, int v)
 
 // put the time complexity analysis for InsertNode() here
 /* Time Complexity: O(log n) - To insert a node in an AVL Tree, the node will
- * only have to be compared with one node in each level. Say there are n 
+ * only have to be compared with one node in each level. Say there are n
  * nodes in the tree, so there are maximal (log n) levels in total based on
  * that AVL tree is a balanced tree. Then, it is obvious that the insertion
  * takes time of (log n) plus (log n) of performing search at the beginning,
  * which is clearly O(log n) (i.e., (2 * log n) dominated by (log n) by Master
  * Theorem).
- */  
+ */
 int InsertNode(AVLTree *T, int k, int v)
 {
     // put your code here
@@ -334,7 +354,7 @@ void NodeCpy(AVLTreeNode **dest, AVLTreeNode *src)
 AVLTreeNode *MinValueNode(AVLTreeNode *node)
 {
     if (!node->left) return node;
-    else 
+    else
         return MinValueNode(node->left);
 }
 
