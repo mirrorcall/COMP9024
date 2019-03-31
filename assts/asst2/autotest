@@ -5,7 +5,15 @@ function echo_n_run
 	echo "$@"; eval $@
 }
 
-echo_n_run "gcc -Werror -Wall -g -D DEBUG -D PRINT -o MyAVLTree MyAVLTree.c"
+if [[ $# < 1 ]]; then
+    echo_n_run "gcc -Werror -Wall -o MyAVLTree MyAVLTree.c"
+elif [[ "$1" = "d" ]]; then
+    echo_n_run "gcc -Werror -Wall -g -D DEBUG -o MyAVLTree MyAVLTree.c"
+elif [[ "$1" = "p" ]]; then
+    echo_n_run "gcc -Werror -Wall -g -D PRINT -o MyAVLTree MyAVLTree.c"
+else
+    echo_n_run "gcc -Werror -Wall -g -D DEBUG -D PRINT -o MyAVLTree MyAVLTree.c"
+fi
 
 if [[ $? -ne 0 ]]; then
 	exit 1

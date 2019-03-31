@@ -9,8 +9,11 @@
 
 #define OP_SUCCESS 		1
 #define OP_FAILURE		0
+#define INTER_MODE    73    // ASCII 'I'
+#define UNION_MODE    85    // ASCII 'U'
 
 #define MAX(a, b)	((a > b) ? a : b)
+#define MIN(a, b) ((a > b) ? b : a)
 
 // macros comparing key and/or value (a) and an AVLTreeNode (n)
 #define EQ(k, v, n) (((k == n->key) &&          \
@@ -53,6 +56,8 @@ typedef struct ATPnode
     struct ATPnode
             *right;
 } ATPnode;
+
+typedef int * TreeList;
 
 /************** Forward References **************/
 AVLTreeNode *newAVLTreeNode(int k, int v );
@@ -119,7 +124,7 @@ AVLTree *CreateAVLTree(const char *filename)
 }
 
 // helper function - recursively clone all nodes of a AVLTree into another
-void CloneAVLTreeNodes(AVLTreeNode **dest, AVLTreeNode *src)
+static void CloneAVLTreeNodes(AVLTreeNode **dest, AVLTreeNode *src)
 {
     if (src == NULL) return;
 
@@ -132,7 +137,7 @@ void CloneAVLTreeNodes(AVLTreeNode **dest, AVLTreeNode *src)
     {
         (*dest)->right = newAVLTreeNode(src->right->key, src->right->value);
         CloneAVLTreeNodes(&(*dest)->right, src->right);
-    }	
+    }
 }
 
 // put your time complexity analysis for CloneAVLTree() here
@@ -151,23 +156,165 @@ AVLTree *CloneAVLTree(AVLTree *T)
   	return dest;
 }
 
+// !!idx always starts with 0.
+// !!t stores both of the key and the value of the node
+// For future reference, InorderTraverse() is of time complexity
+// O(n) - n is the numeber of element in tree.
+// InorderTraverse() traverses tree node in inorder once.
+static void InorderTraverse(TreeList t, AVLTreeNode *root, int *idx)
+{
+    if (!root) return;
+    InorderTraverse(t, root->left,  idx);
+    t[(*idx)++] = root->key;
+    t[(*idx)++] = root->value;
+    InorderTraverse(t, root->right, idx);
+}
+
+// helper function - merge two tree lists containing (key, value) pair
+// For future reference, MergeTreeLists() is of time complexity
+// O(m+n) - m and n are the number of element in different trees.
+// MergeTreeLists() traverses both of two TreeLists only once.
+static int MergeTreeLists(TreeList dest, char mode,
+                          TreeList t1, int n1, TreeList t2, int n2)
+{
+    int i = 0, j = 0, k = 0;
+    if (mode == 'U')
+    {
+        while (i < (n1*2) && j < (n2*2))
+        {
+            if (t1[i] == t2[j])
+            {
+                if (t1[i+1] == t2[j+1])   // minor key comparison
+                {
+                    dest[k++] = t1[i++];
+                    dest[k++] = t1[i++];
+                    j += 2;
+                }
+                else if (t[i+1] < t2[j+1])
+                {
+                    dest[k++] = t1[i++];
+                    dest[k++] = t1[i++];
+                }
+                else
+                {
+                    dest[k++] = t2[j++];
+                    dest[k++] = t2[j++];
+                }
+            }
+            else if (t1[i] < t2[j])
+            {
+                dest[k++] = t1[i++];
+                dest[k++] = t1[i++];
+            }
+            else
+            {
+                dest[k++] = t2[j++];
+                dest[k++] = t2[j++];
+            }
+        }
+        // left-over's
+        while (i < n1)
+        {
+            dest[k++] = t1[i++];
+            dest[k++] = t1[i++];
+        }
+        while (j < n2)
+        {
+            dest[k++] = t2[j++];
+            dest[k++] = t2[j++];
+        }
+    }
+    else if (mode == 'I')
+    {
+        while (i < (n1*2) && j < (n2*2))
+        {
+            printf("%d,%d | %d,%d\n", t1[i], t1[i+1], t2[j], t2[j+1]);
+            if (t1[i] == t2[j])   // AVLTree supports minor key - value
+            {                     // needs another comparison
+                if (t1[i+1] == t2[j+1])   
+                {
+                    dest[k++] = t1[i++];
+                    dest[k++] = t1[i++];
+                    j += 2;
+                }
+                else if (t1[i+1] < t2[j+1])
+                {
+                    i += 2;
+                }
+                else
+                {
+                    j += 2;
+                }
+            }
+            else if (t1[i] < t2[j])
+                i += 2;
+            else
+                j += 2;
+        }
+    }
+    else printf("panic: wrong mode (neither (U)nion nor (I)ntersection)\n");
+
+    return k;
+}
+
+// For future reference, CreateList() is of time complexity O(m+n),
+// as CreateList() only calls InorderTraverse() for T1 of size m and T2 of
+// size of n in linear time (i.e., O(n)), as well as MergeTreeLists() for
+// the sum of length (m+n) in linear time (i.e., O(m+n)).
+static int CreateList(TreeList dest, char mode,
+                           AVLTree *T1, AVLTree *T2)
+{
+    int retval = 0;
+    TreeList t1 = malloc(sizeof(TreeList) * T1->size * 2);
+    TreeList t2 = malloc(sizeof(TreeList) * T2->size * 2);
+    int zero = 0;
+    InorderTraverse(t1, T1->root, &zero);
+    zero = 0;
+    InorderTraverse(t2, T2->root, &zero);
+    if (mode == 'U')
+        retval = MergeTreeLists(dest, mode, t1, T1->size, t2, T2->size);
+    else if (mode == 'I')
+        retval = MergeTreeLists(dest, mode, t1, T1->size, t2, T2->size);
+
+    free(t1);
+    free(t2);
+    return retval;
+}
+
 // put your time complexity for ALVTreesUNion() here
+/* Time Complexity: O(m+n) - m and n are the size of two AVLTrees.
+ * AVLTreeUnion() calls CreateList of complexity O(m+n) as well as
+ * InsertNode of complexity O(log(m+n)). And since linear dominates
+ * logarithm, the final complexity is O(m+n).
+ */
 AVLTree *AVLTreesUnion(AVLTree *T1, AVLTree *T2)
 {
     // put your code here
-    AVLTree *root = newAVLTree();
-
-    return root;
+    AVLTree *result = newAVLTree();
+    TreeList u = malloc(sizeof(TreeList) * (T1->size + T2->size) * 2);
+    int j, n = 0;
+    n = CreateList(u, 'U', T1, T2);
+    for (j = 0; j < n; j+=2)
+        InsertNode(result, u[j], u[j+1]);
+    free(u);
+    return result;
 }
 
 // put your time complexity for ALVTreesIntersection() here
+/* Time Complexity: O(m+n) - m and n are the size of two AVLTrees.
+ * Similar to the AVLTreesUnion(), as calling the same callee.
+ */
 AVLTree *AVLTreesIntersection(AVLTree *T1, AVLTree *T2)
 {
     // put your code here
-    AVLTree *root = newAVLTree();
-
-    return root;
-
+    AVLTree *result = newAVLTree();
+    TreeList i = malloc(sizeof(TreeList) * MIN(T1->size, T2->size) * 2);
+    int j, n = 0;
+    n = CreateList(i, 'I', T1, T2);
+    for (j = 0; j < n; j+=2)
+        InsertNode(result, i[j], i[j+1]);
+    free(i);
+    return result;
 }
 
 // helper function - calculating height of the current node
@@ -192,18 +339,22 @@ int Height(AVLTreeNode *node)
 // !!return negative integer if right child has deeper depth
 int HeightDiffer(AVLTreeNode *node)
 {
+    if (!node) return 0;
     return( Height(node->left) - Height(node->right) );
 }
 
-AVLTreeNode *RotateRight(AVLTreeNode *z)
+static AVLTreeNode *RotateRight(AVLTreeNode *z)
 {
     printf("Perfroming Rotation Right with k,v : %d,%d\n", z->key, z->value);
     AVLTreeNode *y = z->left;
     AVLTreeNode *s = y->right;    // left child of y must be of height of 0
 
     // redirecting
-    y->right = z;
-    z->left  = s;
+    y->right  = z;
+    z->left   = s;
+    z->parent = y;
+    if (s)
+        s->parent = z;
 
     // TODO: check updated heights
     y->height = Height(y) - 1;
@@ -212,15 +363,18 @@ AVLTreeNode *RotateRight(AVLTreeNode *z)
     return y;     // now y becomes the new root;
 }
 
-AVLTreeNode *RotateLeft(AVLTreeNode *z)
+static AVLTreeNode *RotateLeft(AVLTreeNode *z)
 {
     printf("Performing Rotation Left with k,v : %d,%d\n", z->key, z->value);
     AVLTreeNode *y = z->right;
     AVLTreeNode *s = y->left;        // left child of y must be of height of 0
 
     // redirecting
-    y->left  = z;
-    z->right = s;
+    y->left   = z;
+    z->right  = s;
+    z->parent = y;
+    if (s)
+        s->parent = z;
 
     // TODO: check updated heights
     y->height = Height(y) - 1;
@@ -229,54 +383,9 @@ AVLTreeNode *RotateLeft(AVLTreeNode *z)
     return y;     // now y becomes the new root;
 }
 
-// helper fucntion - insert each node recursively
-void RecurInsert(AVLTreeNode **node, int k, int v)
+// Insulate the function for the convenience of InsertNode as well as DeleteNode
+static void Rebalance(AVLTreeNode **node, int k, int v)
 {
-    if (!*node)
-    {
-        *node = newAVLTreeNode(k, v);
-        return;
-    }
-    else
-    {
-        if (EQK(k, (*node)))
-        {	// using value as minor key
-            if (LTV(v, (*node)))
-            {
-                RecurInsert(&(*node)->left, k, v);
-                (*node)->left->parent = (*node);
-                (*node)->height = Height(*node) - 1;
-            }
-            else if (GTV(v, (*node)))
-            {
-                RecurInsert(&(*node)->right, k, v);
-                (*node)->right->parent = (*node);
-                (*node)->height = Height(*node) - 1;
-            }
-            else exit(EXIT_FAILURE); // THIS SHOULD NOT HAPPEN - EQV
-        }
-        else if (LTK(k, (*node)))
-        {
-            RecurInsert(&(*node)->left, k, v);
-            (*node)->left->parent = (*node);
-            (*node)->height = Height(*node) - 1;
-        }
-        else if (GTK(k, (*node)))	// splited for logical resaon
-        {
-            RecurInsert(&(*node)->right, k, v);
-            (*node)->right->parent = (*node);
-            (*node)->height = Height(*node) - 1;
-        }
-        else exit(EXIT_FAILURE);	// THIS SHOULD NOT HAPPEN
-    }
-
-    /*
-     * rebalancing the tree - taking minor key (value) into consideration
-     * instead of using key indicate its location,
-     * rotation using comparison to find the specific child
-     */
-    printf("differ: %d | k, v: %d,%d\n", HeightDiffer(*node), (*node)->key, (*node)->value);
-    printf("%d %d\n", v, ((*node)->right == NULL) ? -1 : (*node)->right->value);
     if (HeightDiffer(*node) > 1)
     {
         if (LTK(k, (*node)->left))
@@ -319,17 +428,72 @@ void RecurInsert(AVLTreeNode **node, int k, int v)
             }
         }
     }
+}
 
+// helper fucntion - insert each node recursively
+static AVLTreeNode *RecurInsert(AVLTreeNode **node, int k, int v)
+{
+    if (!*node)
+    {
+        *node = newAVLTreeNode(k, v);
+        return( *node );
+    }
+    else
+    {
+        if (EQK(k, (*node)))
+        {	// using value as minor key
+            if (LTV(v, (*node)))
+            {
+                AVLTreeNode *child = RecurInsert(&(*node)->left, k, v);
+                (*node)->left = child;
+                child->parent = (*node);
+                (*node)->height = Height(*node) - 1;
+            }
+            else if (GTV(v, (*node)))
+            {
+                AVLTreeNode *child = RecurInsert(&(*node)->right, k, v);
+                (*node)->right = child;
+                child->parent = (*node);
+                (*node)->height = Height(*node) - 1;
+            }
+            else exit(EXIT_FAILURE); // THIS SHOULD NOT HAPPEN - EQV
+        }
+        else if (LTK(k, (*node)))
+        {
+            AVLTreeNode *child = RecurInsert(&(*node)->left, k, v);
+            (*node)->left = child;
+            child->parent = (*node);
+            (*node)->height = Height(*node) - 1;
+        }
+        else if (GTK(k, (*node)))	// splited for logical resaon
+        {
+            AVLTreeNode *child = RecurInsert(&(*node)->right, k, v);
+            (*node)->right = child;
+            child->parent = (*node);
+            (*node)->height = Height(*node) - 1;
+        }
+        else exit(EXIT_FAILURE);	// THIS SHOULD NOT HAPPEN
+    }
+    printf("%d\n", (*node)->key);
+
+    /*
+     * rebalancing the tree - taking minor key (value) into consideration
+     * instead of using key indicate its location,
+     * rotation using comparison to find the specific child
+     */
+    Rebalance(&(*node), k, v);
+
+    return( *node );
 }
 
 // put the time complexity analysis for InsertNode() here
-/* Time Complexity: O(log n) - To insert a node in an AVL Tree, the node will
- * only have to be compared with one node in each level. Say there are n
- * nodes in the tree, so there are maximal (log n) levels in total based on
- * that AVL tree is a balanced tree. Then, it is obvious that the insertion
- * takes time of (log n) plus (log n) of performing search at the beginning,
- * which is clearly O(log n) (i.e., (2 * log n) dominated by (log n) by Master
- * Theorem).
+/* Time Complexity: O(log n) - To insert a node in an AVL Tree, the node
+ * will only have to be compared with one node in each level. Say there are
+ * n nodes in the tree, so there are maximal (log n) levels in total based
+ * on that AVL tree is a balanced tree. Then, it is obvious that the 
+ * insertion takes time of (log n) plus (log n) of performing search at the 
+ * beginning,which is clearly O(log n) (i.e., (2 * log n) dominated by
+ * (log n) by Master Theorem).
  */
 int InsertNode(AVLTree *T, int k, int v)
 {
@@ -344,21 +508,21 @@ int InsertNode(AVLTree *T, int k, int v)
     return OP_SUCCESS;	// mute compiler
 }
 
-void NodeCpy(AVLTreeNode **dest, AVLTreeNode *src)
+static void NodeCpy(AVLTreeNode **dest, AVLTreeNode *src)
 {
     (*dest)->key   = src->key;
     (*dest)->value = src->value;
     return;
 }
 
-AVLTreeNode *MinValueNode(AVLTreeNode *node)
+static AVLTreeNode *MinValueNode(AVLTreeNode *node)
 {
     if (!node->left) return node;
     else
         return MinValueNode(node->left);
 }
 
-AVLTreeNode *Succssor(AVLTreeNode *node)
+static AVLTreeNode *Succssor(AVLTreeNode *node)
 {
     if (node->right)
         return MinValueNode(node->right);
@@ -372,56 +536,65 @@ AVLTreeNode *Succssor(AVLTreeNode *node)
     return p;
 }
 
+static void RecurDelete(AVLTreeNode **node, int k, int v)
+{
+    if (!(*node)->left && !(*node)->right)
+    {
+        // delete node with no child
+        AVLTreeNode *p = (*node)->parent;
+        if (p->left && EQ(k, v, p->left))
+            p->left = NULL;
+        else if (p->right && EQ(k, v, p->right))
+            p->right = NULL;
+        free((*node));
+    }
+    else if ((*node)->left && (*node)->right)
+    {
+        // delete node with two children
+        AVLTreeNode *succ = Succssor((*node));
+        NodeCpy(&(*node), succ);
+        // delete succ from RHS
+        RecurDelete(&(*node)->right, succ->key, succ->value);
+    }
+    else
+    { 
+        // delete node with one child
+        AVLTreeNode *child = ((*node)->left == NULL ?
+                              (*node)->right : (*node)->left);
+        if ((*node)->left)
+        {
+            *(*node) = *child;
+            (*node)->left = NULL;
+        }
+        else
+        {
+            *(*node) = *child;
+            (*node)->right = NULL;
+        }
+        free(child);
+    }
+
+    Rebalance(&(*node), k, v);
+}
+
 // put your time complexity for DeleteNode() here
 int DeleteNode(AVLTree *T, int k, int v)
 {
     // put your code here
     assert(T != NULL);
 
+    printf("Now deleting with %d,%d\n", k, v);
     AVLTreeNode *n = Search(T, k, v);
     if (n == NULL) return OP_FAILURE;
-
-    if (!n->right && !n->left)
-    {	// delete leaf node with no children
-        AVLTreeNode *parent = n->parent;
-        if (parent->left && EQ(k, v, parent->left))
-            parent->left = NULL;
-        else if (parent->right && EQ(k, v, parent->right))
-            parent->right = NULL;
-        free(n);
-    }
-    else if (n->left && !n->right)
-    {	// delete node with only one child
-        NodeCpy(&n, n->left);
-        AVLTreeNode *freed = n->left;
-        n->left = NULL;
-        free(freed);
-    }
-    else if (n->right && !n->left)
-    {	// delete node with only one child
-        NodeCpy(&n, n->right);
-        AVLTreeNode *freed = n->right;
-        n->right = NULL;
-        free(freed);
-    }
-    else
-    {	// delete node with two children
-        AVLTreeNode *succ = Succssor(n);
-        AVLTreeNode *p = succ->parent;
-        NodeCpy(&n, succ);
-        if (p->left && EQ(succ->key, succ->value, p->left))
-            p->left = NULL;
-        else if (p->right && EQ(succ->key, succ->value, p->right))
-            p->right = NULL;
-        free(succ);
-    }
+    RecurDelete(&n, k, v);
 
     T->size -= 1;
+
 
     return OP_SUCCESS;
 }
 
-AVLTreeNode *RecurSearch(AVLTreeNode *node, int k, int v)
+static AVLTreeNode *RecurSearch(AVLTreeNode *node, int k, int v)
 {
     if (node == NULL) return NULL;
     else if (EQ(k, v, node))
@@ -454,7 +627,7 @@ AVLTreeNode *Search(AVLTree *T, int k, int v)
 }
 
 // helper function - free each node out of the tree
-void FreeAVLTreeNode(AVLTreeNode *node)
+static void FreeAVLTreeNode(AVLTreeNode *node)
 {
     if (node == NULL) return;
     FreeAVLTreeNode(node->left);
@@ -477,7 +650,7 @@ void FreeAVLTree(AVLTree *T)
 }
 
 // helper fucntion - print each node out of the tree
-void PrintAVLTreeNodes(AVLTreeNode *node)
+static void PrintAVLTreeNodes(AVLTreeNode *node)
 {
     if (!node) return;
     else
@@ -554,26 +727,44 @@ static void ASCIITreePrinter(AVLTree *T)
 int main() //sample main for testing
 {
     AVLTree *tree1, *tree2;
-    tree1=CreateAVLTree("File1.txt");
+    tree1=CreateAVLTree("File2.txt");
     PrintAVLTree(tree1);
 #ifdef PRINT
     ASCIITreePrinter(tree1);
 #endif
     printf("tree 1 of size: %d\n", tree1->size);
+    /* if (DeleteNode(tree1, 2, 2) == OP_FAILURE) */
+    /*     printf("Could not found.\n"); */
+    /* ASCIITreePrinter(tree1); */
+    DeleteNode(tree1, 2, 10);
+    ASCIITreePrinter(tree1);
     /* DeleteNode(tree1, 50, 2); */
+    /* ASCIITreePrinter(tree1); */
     /* DeleteNode(tree1, -17, 34); */
+    /* ASCIITreePrinter(tree1); */
     /* DeleteNode(tree1, -19, 92); */
+    /* ASCIITreePrinter(tree1); */
     /* DeleteNode(tree1, -2, 29); */
+    /* ASCIITreePrinter(tree1); */
     /* DeleteNode(tree1, 2, 1); */
+    /* ASCIITreePrinter(tree1); */
     /* DeleteNode(tree1, 2, 50); */
+    ASCIITreePrinter(tree1);
     tree2=CloneAVLTree(tree1);
-
+    PrintAVLTree(tree1);
 #ifdef PRINT
     ASCIITreePrinter(tree2);
 #endif
     printf("tree 2 of size: %d\n", tree2->size);
+    AVLTree *tree3 = CreateAVLTree("File1.txt");
+    ASCIITreePrinter(tree3);
+    printf("Intersection is\n");
+    AVLTree *tree4 = AVLTreesIntersection(tree1, tree3);
+    ASCIITreePrinter(tree4);
     FreeAVLTree(tree1);
     FreeAVLTree(tree2);
+    FreeAVLTree(tree3);
+    FreeAVLTree(tree4);
     // int i,j;
     // AVLTree *tree1, *tree2, *tree3, *tree4;
     // AVLTreeNode *node1;
