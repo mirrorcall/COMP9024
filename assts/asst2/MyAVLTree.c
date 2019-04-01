@@ -21,6 +21,7 @@
 #define EQK(k, n)	(( k == n->key) ? 1 : 0)
 #define LTK(k, n)	(( k <  n->key) ? 1 : 0)
 #define GTK(k, n)	(( k >  n->key) ? 1 : 0)
+#define EQV(v, n) (( v == n->value) ? 1 : 0)
 #define LTV(v, n)	(( v <  n->value) ? 1 : 0)
 #define GTV(v, n)	(( v >  n->value) ? 1 : 0)
                   // unguard macros - require exactly n of type AVLTreeNode
@@ -71,6 +72,9 @@ int DeleteNode(AVLTree *T, int k, int v);
 AVLTreeNode *Search(AVLTree *T, int k, int v);
 void FreeAVLTree(AVLTree *T);
 void PrintAVLTree(AVLTree *T);
+
+
+static AVLTreeNode *RecurSearch(AVLTreeNode *node, int k, int v);
 
 /************** Function Defnition **************/
 // create a new AVLTreeNode
@@ -190,7 +194,7 @@ static int MergeTreeLists(TreeList dest, char mode,
                     dest[k++] = t1[i++];
                     j += 2;
                 }
-                else if (t[i+1] < t2[j+1])
+                else if (t1[i+1] < t2[j+1])
                 {
                     dest[k++] = t1[i++];
                     dest[k++] = t1[i++];
@@ -386,6 +390,8 @@ static AVLTreeNode *RotateLeft(AVLTreeNode *z)
 // Insulate the function for the convenience of InsertNode as well as DeleteNode
 static void Rebalance(AVLTreeNode **node, int k, int v)
 {
+    if (*node)
+        printf("(%d) Differ: %d\n", (*node)->value, HeightDiffer(*node));
     if (HeightDiffer(*node) > 1)
     {
         if (LTK(k, (*node)->left))
@@ -474,7 +480,6 @@ static AVLTreeNode *RecurInsert(AVLTreeNode **node, int k, int v)
         }
         else exit(EXIT_FAILURE);	// THIS SHOULD NOT HAPPEN
     }
-    printf("%d\n", (*node)->key);
 
     /*
      * rebalancing the tree - taking minor key (value) into consideration
@@ -538,43 +543,72 @@ static AVLTreeNode *Succssor(AVLTreeNode *node)
 
 static void RecurDelete(AVLTreeNode **node, int k, int v)
 {
-    if (!(*node)->left && !(*node)->right)
+    if (!(*node)) return;
+    else if (EQK(k, (*node)))
     {
-        // delete node with no child
-        AVLTreeNode *p = (*node)->parent;
-        if (p->left && EQ(k, v, p->left))
-            p->left = NULL;
-        else if (p->right && EQ(k, v, p->right))
-            p->right = NULL;
-        free((*node));
-    }
-    else if ((*node)->left && (*node)->right)
-    {
-        // delete node with two children
-        AVLTreeNode *succ = Succssor((*node));
-        NodeCpy(&(*node), succ);
-        // delete succ from RHS
-        RecurDelete(&(*node)->right, succ->key, succ->value);
-    }
-    else
-    { 
-        // delete node with one child
-        AVLTreeNode *child = ((*node)->left == NULL ?
-                              (*node)->right : (*node)->left);
-        if ((*node)->left)
+        if (EQV(v, (*node)))
         {
-            *(*node) = *child;
-            (*node)->left = NULL;
+            if (!(*node)->left && !(*node)->right)
+            {
+                // delete node with no child
+                AVLTreeNode *p = (*node)->parent;
+                if (p->left && EQ(k, v, p->left))
+                    p->left = NULL;
+                else if (p->right && EQ(k, v, p->right))
+                    p->right = NULL;
+                free((*node));
+            }
+            else if ((*node)->left && (*node)->right)
+            {
+                // delete node with two children
+                AVLTreeNode *succ = Succssor((*node));
+                NodeCpy(&(*node), succ);
+                // delete succ from RHS
+                RecurDelete(&(*node)->right, succ->key, succ->value);
+            }
+            else
+            {
+                // delete node with one child
+                AVLTreeNode *child = ((*node)->left == NULL ?
+                                      (*node)->right : (*node)->left);
+                if ((*node)->left)
+                {
+                    *(*node) = *child;
+                    (*node)->left = NULL;
+                }
+                else
+                {
+                    *(*node) = *child;
+                    (*node)->right = NULL;
+                }
+                free(child);
+            }
         }
+        else if (LTV(v, (*node)))
+            RecurDelete(&(*node)->left, k, v);
         else
-        {
-            *(*node) = *child;
-            (*node)->right = NULL;
-        }
-        free(child);
+            RecurDelete(&(*node)->right, k, v);
     }
+    else if (LTK(k, (*node)))
+        RecurDelete(&(*node)->left, k, v);
+    else
+        RecurDelete(&(*node)->right, k, v);
 
-    Rebalance(&(*node), k, v);
+    /* Rebalance(&(*node), k, v); */
+    if (HeightDiffer((*node)) > 1 && HeightDiffer((*node)->left) >= 0)
+        (*node) = RotateRight((*node));
+    else if (HeightDiffer((*node)) > 1 && HeightDiffer((*node)->left) < 0)
+    {
+        (*node)->left = RotateLeft((*node)->left);
+        (*node) = RotateRight((*node));
+    }
+    else if (HeightDiffer((*node)) < -1 && HeightDiffer((*node)->right) <= 0)
+        (*node) = RotateLeft((*node));
+    else if (HeightDiffer((*node)) < -1 && HeightDiffer((*node)->right) > 0)
+    {
+        (*node)->right = RotateRight((*node)->right);
+        (*node) = RotateLeft((*node));
+    }
 }
 
 // put your time complexity for DeleteNode() here
@@ -589,7 +623,6 @@ int DeleteNode(AVLTree *T, int k, int v)
     RecurDelete(&n, k, v);
 
     T->size -= 1;
-
 
     return OP_SUCCESS;
 }
