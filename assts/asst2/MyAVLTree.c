@@ -75,9 +75,6 @@ AVLTreeNode *Search(AVLTree *T, int k, int v);
 void FreeAVLTree(AVLTree *T);
 void PrintAVLTree(AVLTree *T);
 
-
-static AVLTreeNode *RecurSearch(AVLTreeNode *node, int k, int v);
-
 /************** Function Defnition **************/
 // create a new AVLTreeNode
 AVLTreeNode *newAVLTreeNode(int k, int v )
@@ -105,7 +102,7 @@ AVLTree *newAVLTree()
     return T;
 }
 
-void validation(char *key, char *val) {
+static void validation(char *key, char *val) {
     if (!key || !val) {
         fprintf(stderr, "Input with wrong format, expect \"(D, D)\"");
         exit(EXIT_FAILURE);
@@ -116,7 +113,7 @@ void validation(char *key, char *val) {
     }
 }
 
-void parser(AVLTree **T, const char *buf) {
+static void parser(AVLTree **T, const char *buf) {
     int i = 0, encounter = 0;
     char *key = malloc(sizeof(char) * BUFFER_SIZE);
     char *val = malloc(sizeof(char) * BUFFER_SIZE);
@@ -281,10 +278,9 @@ static int MergeTreeLists(TreeList dest, char mode,
     {
         while (i < (n1*2) && j < (n2*2))
         {
-            printf("%d,%d | %d,%d\n", t1[i], t1[i+1], t2[j], t2[j+1]);
             if (t1[i] == t2[j])   // AVLTree supports minor key - value
             {                     // needs another comparison
-                if (t1[i+1] == t2[j+1])   
+                if (t1[i+1] == t2[j+1])
                 {
                     dest[k++] = t1[i++];
                     dest[k++] = t1[i++];
@@ -398,11 +394,16 @@ int HeightDiffer(AVLTreeNode *node)
 
 static AVLTreeNode *RotateRight(AVLTreeNode *z)
 {
-    printf("Perfroming Rotation Right with k,v : %d,%d\n", z->key, z->value);
+#ifdef DEBUG
+    printf("Perfroming Rotation Right with k,v : %d,%d\n",
+           z->key, z->value);
+#endif
     AVLTreeNode *y = z->left;
     AVLTreeNode *s = y->right;    // left child of y must be of height of 0
 
     // redirecting
+    if (z->parent)
+        y->parent = z->parent;
     y->right  = z;
     z->left   = s;
     z->parent = y;
@@ -418,11 +419,15 @@ static AVLTreeNode *RotateRight(AVLTreeNode *z)
 
 static AVLTreeNode *RotateLeft(AVLTreeNode *z)
 {
+#ifdef DEBUG
     printf("Performing Rotation Left with k,v : %d,%d\n", z->key, z->value);
+#endif
     AVLTreeNode *y = z->right;
     AVLTreeNode *s = y->left;        // left child of y must be of height of 0
 
     // redirecting
+    if (z->parent)
+        y->parent = z->parent;
     y->left   = z;
     z->right  = s;
     z->parent = y;
@@ -542,8 +547,8 @@ static AVLTreeNode *RecurInsert(AVLTreeNode **node, int k, int v)
 /* Time Complexity: O(log n) - To insert a node in an AVL Tree, the node
  * will only have to be compared with one node in each level. Say there are
  * n nodes in the tree, so there are maximal (log n) levels in total based
- * on that AVL tree is a balanced tree. Then, it is obvious that the 
- * insertion takes time of (log n) plus (log n) of performing search at the 
+ * on that AVL tree is a balanced tree. Then, it is obvious that the
+ * insertion takes time of (log n) plus (log n) of performing search at the
  * beginning,which is clearly O(log n) (i.e., (2 * log n) dominated by
  * (log n) by Master Theorem).
  */
@@ -618,14 +623,17 @@ static void RecurDelete(AVLTreeNode **node, int k, int v)
                 // delete node with one child
                 AVLTreeNode *child = ((*node)->left == NULL ?
                                       (*node)->right : (*node)->left);
+                AVLTreeNode *parent = (*node)->parent;
                 if ((*node)->left)
                 {
                     *(*node) = *child;
+                    (*node)->parent = parent;
                     (*node)->left = NULL;
                 }
                 else
                 {
                     *(*node) = *child;
+                    (*node)->parent = parent;
                     (*node)->right = NULL;
                 }
                 free(child);
@@ -666,10 +674,12 @@ int DeleteNode(AVLTree *T, int k, int v)
     // put your code here
     assert(T != NULL);
 
+#ifdef DEBUG
     printf("Now deleting with %d,%d\n", k, v);
+#endif
     AVLTreeNode *n = Search(T, k, v);
     if (n == NULL) return OP_FAILURE;
-    RecurDelete(&n, k, v);
+    RecurDelete(&T->root, k, v);
 
     T->size -= 1;
 
@@ -824,7 +834,9 @@ int main() //sample main for testing
     /*     printf("Could not found.\n"); */
     /* ASCIITreePrinter(tree1); */
     DeleteNode(tree1, 2, 10);
+#ifdef PRINT
     ASCIITreePrinter(tree1);
+#endif
     /* DeleteNode(tree1, 50, 2); */
     /* ASCIITreePrinter(tree1); */
     /* DeleteNode(tree1, -17, 34); */
@@ -836,7 +848,6 @@ int main() //sample main for testing
     /* DeleteNode(tree1, 2, 1); */
     /* ASCIITreePrinter(tree1); */
     /* DeleteNode(tree1, 2, 50); */
-    ASCIITreePrinter(tree1);
     tree2=CloneAVLTree(tree1);
     PrintAVLTree(tree1);
 #ifdef PRINT
@@ -844,14 +855,20 @@ int main() //sample main for testing
 #endif
     printf("tree 2 of size: %d\n", tree2->size);
     AVLTree *tree3 = CreateAVLTree("File1.txt");
+#ifdef PRINT
     ASCIITreePrinter(tree3);
+#endif
     printf("Intersection is\n");
     AVLTree *tree4 = AVLTreesIntersection(tree1, tree3);
     PrintAVLTree(tree4);
+#ifdef PRINT
     ASCIITreePrinter(tree4);
+#endif
     AVLTree *tree5 = AVLTreesUnion(tree1, tree3);
     PrintAVLTree(tree5);
+#ifdef PRINT
     ASCIITreePrinter(tree5);
+#endif
     FreeAVLTree(tree1);
     FreeAVLTree(tree2);
     FreeAVLTree(tree3);
@@ -866,34 +883,43 @@ int main() //sample main for testing
     // FreeAVLTree(tree1);
     // //you need to create the text file file1.txt
     // // to store a set of items without duplicate items
-    // tree2=CreateAVLTree("file1.txt"); 
+    // tree2=CreateAVLTree("file1.txt");
     // PrintAVLTree(tree2);
     // tree3=CloneAVLTree(tree2);
     // PrintAVLTree(tree3);
     // FreeAVLTree(tree2);
     // FreeAVLTree(tree3);
 	 
-    // tree4=newAVLTree();
-    // j=InsertNode(tree4, 10, 10);
-    // for (i=0; i<15; i++)
-    // {
-    // 	j=InsertNode(tree4, i, i);
-    // 	if (j==0) printf("(%d, %d) already exists\n", i, i);
-    // }
-    // PrintAVLTree(tree4);
-    // node1=Search(tree4,20,20);
-    // if (node1!=NULL)
-    // 	printf("key= %d value= %d\n",node1->key,node1->value);
-    // else 
-    //     printf("Key 20 does not exist\n");
+    int i, j;
+    AVLTree *tree6;
+    AVLTreeNode *node1;
+    tree6=newAVLTree();
+    j=InsertNode(tree6, 10, 10);
+    for (i=0; i<15; i++)
+    {
+    	j=InsertNode(tree6, i, i);
+    	if (j==0) printf("(%d, %d) already exists\n", i, i);
+    }
+    PrintAVLTree(tree6);
+#ifdef PRINT
+    ASCIITreePrinter(tree6);
+#endif
+    node1=Search(tree6,20,20);
+    if (node1!=NULL)
+    	printf("key= %d value= %d\n",node1->key,node1->value);
+    else
+        printf("Key 20 does not exist\n");
 	  
-    // for (i=17; i>0; i--)
-    // {
-    // 	j=DeleteNode(tree4, i, i);
-    // 	if (j==0) 
-    // 	  	printf("Key %d does not exist\n",i);  
-    //     PrintAVLTree(tree4);
-    // }
-    // FreeAVLTree(tree4);
+    for (i=17; i>0; i--)
+    {
+    	j=DeleteNode(tree6, i, i);
+    	if (j==0)
+    	  	printf("Key %d does not exist\n",i);
+        PrintAVLTree(tree6);
+#ifdef PRINT
+        ASCIITreePrinter(tree6);
+#endif
+    }
+    FreeAVLTree(tree6);
     return 0; 
 }
