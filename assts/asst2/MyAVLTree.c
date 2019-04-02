@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <string.h>
 
 // all the basic data structures and functions are included in this template
@@ -11,6 +12,7 @@
 #define OP_FAILURE		0
 #define INTER_MODE    73    // ASCII 'I'
 #define UNION_MODE    85    // ASCII 'U'
+#define BUFFER_SIZE   1024  // 1 kilo-byte
 
 #define MAX(a, b)	((a > b) ? a : b)
 #define MIN(a, b) ((a > b) ? b : a)
@@ -103,25 +105,72 @@ AVLTree *newAVLTree()
     return T;
 }
 
+void validation(char *key, char *val) {
+    if (!key || !val) {
+        fprintf(stderr, "Input with wrong format, expect \"(D, D)\"");
+        exit(EXIT_FAILURE);
+    }
+    else if (key[0] == 0 || val[0] == 0) {
+        fprintf(stderr, "Input with wrong format, expect \"(D, D)\"");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void parser(AVLTree **T, const char *buf) {
+    int i = 0, encounter = 0;
+    char *key = malloc(sizeof(char) * BUFFER_SIZE);
+    char *val = malloc(sizeof(char) * BUFFER_SIZE);
+    while (*buf != '\0') {
+        if (*buf == '(') {
+            memset(key, 0, BUFFER_SIZE);
+            memset(val, 0, BUFFER_SIZE);
+            encounter = 1;
+        }
+        else if ((isdigit(*buf) && encounter == 1) || *buf == '-') {
+            key[i++] = *buf;
+        }
+        else if (*buf == ',') {
+            encounter = 2;
+            i = 0;
+        }
+        else if ((isdigit(*buf) && encounter == 2) || *buf == '-') {
+            val[i++] = *buf;
+        }
+        else if (*buf == ')') {
+            validation(key, val);
+            int k = (int)strtol(key, NULL, 10);
+            int v = (int)strtol(val, NULL, 10);
+            InsertNode(*T, k, v);
+            encounter = 0;
+            i = 0;
+        }
+        buf++;
+    }
+    validation(key, val);
+    free(key);
+    free(val);
+}
+
 // put your time complexity analysis of CreateAVLTree() here
 AVLTree *CreateAVLTree(const char *filename)
 {
     // put your code here
     AVLTree *T = newAVLTree();
-    FILE *fp = fopen(filename, "r");
-    int key, value;
+    FILE *fp;
+    char *buf = malloc(sizeof(char) * BUFFER_SIZE);
+
+    if (strcmp(filename, "stdin") == 0)
+        fp = stdin;
+    else
+        fp = fopen(filename, "r");
 
     // put extra whitespace to cosume the adjacent whitespace
-    while ((fscanf(fp, "(%d, %d) ", &key, &value)) == 2)
+    while (fgets(buf, BUFFER_SIZE, fp) != NULL)
     {
-        if ((InsertNode(T, key, value)) == OP_FAILURE)
-        {
-#ifdef DEBUG
-            printf("Found one - skipping.\n");
-#endif
-            continue;
-        }
+        if (buf[0] == '\n') break;
+        parser(&T, buf);
     }
+    free(buf);
     fclose(fp);
 
   	return T;
@@ -390,8 +439,6 @@ static AVLTreeNode *RotateLeft(AVLTreeNode *z)
 // Insulate the function for the convenience of InsertNode as well as DeleteNode
 static void Rebalance(AVLTreeNode **node, int k, int v)
 {
-    if (*node)
-        printf("(%d) Differ: %d\n", (*node)->value, HeightDiffer(*node));
     if (HeightDiffer(*node) > 1)
     {
         if (LTK(k, (*node)->left))
@@ -594,7 +641,9 @@ static void RecurDelete(AVLTreeNode **node, int k, int v)
     else
         RecurDelete(&(*node)->right, k, v);
 
-    /* Rebalance(&(*node), k, v); */
+    /*
+     * Rebalance the tree using similar but not the same mechanic
+     */
     if (HeightDiffer((*node)) > 1 && HeightDiffer((*node)->left) >= 0)
         (*node) = RotateRight((*node));
     else if (HeightDiffer((*node)) > 1 && HeightDiffer((*node)->left) < 0)
@@ -748,6 +797,11 @@ static void RecurPrint(AVLTreeNode *root)
 static void ASCIITreePrinter(AVLTree *T)
 {
     assert(T != NULL);
+    if (!T->root)
+    {
+        printf("(*)\n");
+        return;
+    }
     memset(ascii, 0, MAX_DEPATH);
     printf("------------------------------------------\n");
     printf("AVL Tree Printer:\n");
@@ -793,11 +847,16 @@ int main() //sample main for testing
     ASCIITreePrinter(tree3);
     printf("Intersection is\n");
     AVLTree *tree4 = AVLTreesIntersection(tree1, tree3);
+    PrintAVLTree(tree4);
     ASCIITreePrinter(tree4);
+    AVLTree *tree5 = AVLTreesUnion(tree1, tree3);
+    PrintAVLTree(tree5);
+    ASCIITreePrinter(tree5);
     FreeAVLTree(tree1);
     FreeAVLTree(tree2);
     FreeAVLTree(tree3);
     FreeAVLTree(tree4);
+    FreeAVLTree(tree5);
     // int i,j;
     // AVLTree *tree1, *tree2, *tree3, *tree4;
     // AVLTreeNode *node1;
