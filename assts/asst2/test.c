@@ -59,11 +59,14 @@ int main(int argc, char *argv[]) {
 	
 //	FILE *fp = fopen("File1.txt", "r");
 	FILE *fp = stdin;
-	while (fgets(buf, BUFFER_SIZE, fp) != NULL)
-	{
-		if (buf[0] == '\n') break;
-		parser(buf);
-	}
+//	while (fgets(buf, BUFFER_SIZE, fp) != NULL)
+//	{
+//		if (buf[0] == '\n') break;
+//		parser(buf);
+//	}
+//	
+	char *b = malloc(100);
+	printf("%lu\n", sizeof(b));
 
 	free(buf);
 	fclose(fp);

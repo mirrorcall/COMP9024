@@ -394,10 +394,6 @@ int HeightDiffer(AVLTreeNode *node)
 
 static AVLTreeNode *RotateRight(AVLTreeNode *z)
 {
-#ifdef DEBUG
-    printf("Perfroming Rotation Right with k,v : %d,%d\n",
-           z->key, z->value);
-#endif
     AVLTreeNode *y = z->left;
     AVLTreeNode *s = y->right;    // left child of y must be of height of 0
 
@@ -410,7 +406,6 @@ static AVLTreeNode *RotateRight(AVLTreeNode *z)
     if (s)
         s->parent = z;
 
-    // TODO: check updated heights
     y->height = Height(y) - 1;
     z->height = Height(z) - 1;
 
@@ -419,9 +414,6 @@ static AVLTreeNode *RotateRight(AVLTreeNode *z)
 
 static AVLTreeNode *RotateLeft(AVLTreeNode *z)
 {
-#ifdef DEBUG
-    printf("Performing Rotation Left with k,v : %d,%d\n", z->key, z->value);
-#endif
     AVLTreeNode *y = z->right;
     AVLTreeNode *s = y->left;        // left child of y must be of height of 0
 
@@ -434,7 +426,6 @@ static AVLTreeNode *RotateLeft(AVLTreeNode *z)
     if (s)
         s->parent = z;
 
-    // TODO: check updated heights
     y->height = Height(y) - 1;
     z->height = Height(z) - 1;
 
@@ -555,9 +546,6 @@ static AVLTreeNode *RecurInsert(AVLTreeNode **node, int k, int v)
 int InsertNode(AVLTree *T, int k, int v)
 {
     // put your code here
-#ifdef DEBUG
-    printf("Now inserting pair (%d,%d)\n", k, v);
-#endif
     if (Search(T, k, v) != NULL) return OP_FAILURE;	 // item(k, v) exists
     RecurInsert(&T->root, k, v);
     T->size += 1;
@@ -649,9 +637,11 @@ static void RecurDelete(AVLTreeNode **node, int k, int v)
     else
         RecurDelete(&(*node)->right, k, v);
 
-    /*
-     * Rebalance the tree using similar but not the same mechanic
-     */
+    // Recalculating heights
+    if ((*node))
+        (*node)->height = Height((*node)) - 1;
+
+    // Rebalance the tree using similar but not the same mechanic
     if (HeightDiffer((*node)) > 1 && HeightDiffer((*node)->left) >= 0)
         (*node) = RotateRight((*node));
     else if (HeightDiffer((*node)) > 1 && HeightDiffer((*node)->left) < 0)
@@ -674,9 +664,6 @@ int DeleteNode(AVLTree *T, int k, int v)
     // put your code here
     assert(T != NULL);
 
-#ifdef DEBUG
-    printf("Now deleting with %d,%d\n", k, v);
-#endif
     AVLTreeNode *n = Search(T, k, v);
     if (n == NULL) return OP_FAILURE;
     RecurDelete(&T->root, k, v);
@@ -735,7 +722,6 @@ static void FreeAVLTreeNode(AVLTreeNode *node)
 void FreeAVLTree(AVLTree *T)
 {
     // put your code here
-    // TODO: to be checked in valgrind - CHECKED
     assert(T != NULL);
     FreeAVLTreeNode(T->root);
     free(T);
@@ -816,7 +802,6 @@ static void ASCIITreePrinter(AVLTree *T)
     printf("------------------------------------------\n");
     printf("AVL Tree Printer:\n");
     RecurPrint(T->root);
-    printf("------------------------------------------\n");
     return;
 }
 #endif
@@ -830,6 +815,7 @@ int main() //sample main for testing
     ASCIITreePrinter(tree1);
 #endif
     AVLTree *tree3 = CreateAVLTree("File2.txt");
+    DeleteNode(tree3, 2, 8);
 #ifdef PRINT
     ASCIITreePrinter(tree3);
 #endif
@@ -866,6 +852,7 @@ int main() //sample main for testing
     FreeAVLTree(tree3);
     FreeAVLTree(tree4);
     FreeAVLTree(tree5);
+    /* return 0; */
     // int i,j;
     // AVLTree *tree1, *tree2, *tree3, *tree4;
     // AVLTreeNode *node1;
@@ -887,7 +874,7 @@ int main() //sample main for testing
     AVLTreeNode *node1;
     tree6=newAVLTree();
     j=InsertNode(tree6, 10, 10);
-    for (i=0; i<15; i++)
+    for (i=0; i<100; i++)
     {
     	j=InsertNode(tree6, i, i);
     	if (j==0) printf("(%d, %d) already exists\n", i, i);
@@ -902,17 +889,18 @@ int main() //sample main for testing
     else
         printf("Key 20 does not exist\n");
 	  
-    for (i=17; i>0; i--)
+    for (i=100; i>0; i--)
     {
     	j=DeleteNode(tree6, i, i);
     	if (j==0)
     	  	printf("Key %d does not exist\n",i);
-        PrintAVLTree(tree6);
 #ifdef PRINT
-        ASCIITreePrinter(tree6);
+      ASCIITreePrinter(tree6);
 #endif
+        PrintAVLTree(tree6);
     }
     FreeAVLTree(tree6);
+    return 0;
 
     AVLTree *tree7 = CreateAVLTree("stdin");
     PrintAVLTree(tree7);
