@@ -263,12 +263,12 @@ static int MergeTreeLists(TreeList dest, char mode,
             }
         }
         // left-over's
-        while (i < n1)
+        while (i < n1*2)
         {
             dest[k++] = t1[i++];
             dest[k++] = t1[i++];
         }
-        while (j < n2)
+        while (j < n2*2)
         {
             dest[k++] = t2[j++];
             dest[k++] = t2[j++];
@@ -824,18 +824,26 @@ static void ASCIITreePrinter(AVLTree *T)
 int main() //sample main for testing
 {
     AVLTree *tree1, *tree2;
-    tree1=CreateAVLTree("File2.txt");
+    tree1=CreateAVLTree("File1.txt");
     PrintAVLTree(tree1);
 #ifdef PRINT
     ASCIITreePrinter(tree1);
 #endif
-    printf("tree 1 of size: %d\n", tree1->size);
-    /* if (DeleteNode(tree1, 2, 2) == OP_FAILURE) */
-    /*     printf("Could not found.\n"); */
-    /* ASCIITreePrinter(tree1); */
-    DeleteNode(tree1, 2, 10);
+    AVLTree *tree3 = CreateAVLTree("File2.txt");
 #ifdef PRINT
-    ASCIITreePrinter(tree1);
+    ASCIITreePrinter(tree3);
+#endif
+    printf("Intersection is\n");
+    AVLTree *tree4 = AVLTreesIntersection(tree1, tree3);
+    PrintAVLTree(tree4);
+#ifdef PRINT
+    ASCIITreePrinter(tree4);
+#endif
+    printf("Union is\n");
+    AVLTree *tree5 = AVLTreesUnion(tree1, tree3);
+    PrintAVLTree(tree5);
+#ifdef PRINT
+    ASCIITreePrinter(tree5);
 #endif
     /* DeleteNode(tree1, 50, 2); */
     /* ASCIITreePrinter(tree1); */
@@ -852,22 +860,6 @@ int main() //sample main for testing
     PrintAVLTree(tree1);
 #ifdef PRINT
     ASCIITreePrinter(tree2);
-#endif
-    printf("tree 2 of size: %d\n", tree2->size);
-    AVLTree *tree3 = CreateAVLTree("File1.txt");
-#ifdef PRINT
-    ASCIITreePrinter(tree3);
-#endif
-    printf("Intersection is\n");
-    AVLTree *tree4 = AVLTreesIntersection(tree1, tree3);
-    PrintAVLTree(tree4);
-#ifdef PRINT
-    ASCIITreePrinter(tree4);
-#endif
-    AVLTree *tree5 = AVLTreesUnion(tree1, tree3);
-    PrintAVLTree(tree5);
-#ifdef PRINT
-    ASCIITreePrinter(tree5);
 #endif
     FreeAVLTree(tree1);
     FreeAVLTree(tree2);
@@ -921,5 +913,13 @@ int main() //sample main for testing
 #endif
     }
     FreeAVLTree(tree6);
+
+    AVLTree *tree7 = CreateAVLTree("stdin");
+    PrintAVLTree(tree7);
+#ifdef PRINT
+    ASCIITreePrinter(tree7);
+#endif
+    FreeAVLTree(tree7);
+
     return 0; 
 }
