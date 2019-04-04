@@ -1,0 +1,7 @@
+# ignore GTAGS
+GPATH
+GRTAGS
+GTAGS
+
+# ignore executable files
+MyTaskScheduler
