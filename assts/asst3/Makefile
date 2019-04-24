@@ -1,7 +1,7 @@
 # Makefile
 
 CC=gcc
-CFLAGS=-Werror -Wall -g -Wunneeded-internal-declaration
+CFLAGS=-Werror -Wall
 
 %.o:%.c
 				$(CC) $(CFLAGS) -c $<

@@ -1,0 +1,10 @@
+slides/*
+assts/asst1/test
+assts/asst1/*.txt
+assts/asst1/ass1.zip
+assts/asst1/MyDLList.dSYM/Contents/Info.plist
+assts/asst1/MyDLList.dSYM/Contents/Resources/DWARF/MyDLList
+assts/asst3/*.o
+assts/asst3/*.txt
+assts/asst3/run
+assts/asst3/MyTaskScheduler copy.c
