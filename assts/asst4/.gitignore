@@ -1,3 +1,4 @@
 *.o
 MyGraph
 MyGraph.dSYM
+MyGraph copy.c
