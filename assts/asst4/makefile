@@ -1,6 +1,6 @@
 # makefile
 CC=gcc
-CFLAGS=-Werror -Wall -Wno-unused-function -g
+CFLAGS=-Werror -Wall -Wno-unused-function -g -D DEBUG
 
 %.o:%.c
 		$(CC) $(CFLAGS) -c $<

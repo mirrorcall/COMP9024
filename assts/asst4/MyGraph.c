@@ -1,9 +1,11 @@
+#include <assert.h>
+
 #include <stdlib.h>
 #include <stdio.h>
-#include <assert.h>
 
 #include <math.h>
 
+// predefined constants
 #define MAX_VERTICES    256
 #define MAX_QUEUE_SIZE  256
 #define MAX_ALIST_SIZE  255     // 256-1: no self-cycle involved
@@ -17,9 +19,9 @@
 #define HEAD            0
 #define NONEXIST        -1
 
+// macros - help speed up indexing
 #define x(VERTEXNODE)   (VERTEXNODE).v->x
 #define y(VERTEXNODE)   (VERTEXNODE).v->y
-// macros implement comparable vertex and edge
 // v1 must be the structure rather than its pointer
 #define veq(v1, v2)     ((v1->x==v2->x) && (v1->y==v2->y))
 #define eeq(e1, e2)     (veq((e1).p1, (e2)->p1) && veq((e1).p2, (e2)->p2))
@@ -29,6 +31,7 @@
 #define left(idx)       ((idx * 2) + 1)
 #define right(idx)      ((idx * 2) + 2)
 
+// structures including auxiliary ones to implement a undirected graph
 // A vertex is a 2D point
 typedef struct Vertex { 
     int     x;      // x-coordinate
@@ -53,6 +56,7 @@ typedef struct VertexNode {
     Vertex  *v;
     AdjNode *head_a;
     int      nA;
+    struct VertexNode  *prev;
 } VertexNode;
 typedef struct GraphRep *Graph;
 typedef struct GraphRep {   // graph header
@@ -75,9 +79,9 @@ typedef struct QueueNode
 } QueueNode;
 typedef struct QueueRep
 {
+    int         size;    
     QueueNode   *front;
     QueueNode   *back;
-    int         size;
 } QueueRep;
 typedef QueueRep *Queue;
 
@@ -90,8 +94,8 @@ typedef struct DataNode
 
 typedef struct BinHeapNode
 {
-    int size;
-    DataNode *data;
+    int         size;
+    DataNode    *data;
 } BinHeapNode;
 typedef struct BinHeapNode *PriorityQueue;
 
@@ -111,7 +115,7 @@ static const char *error_msg[9] =
     "priority queue creation failure",
     "data ndoe creation failure"
 };
-static const char *line_break = "--------------------";
+static const char *line_break = "-------------------------";
 
 // private forward references - queue impl
 static Queue newQueue();
@@ -129,7 +133,9 @@ static Bool isPQEmpty(PriorityQueue pq);
 static Bool isValid(DataNode parent, DataNode child);
 static void enque(PriorityQueue pq, VertexNode v, float k);
 static void MinHeapify(PriorityQueue pq, int idx);
-static DataNode deque(PriorityQueue);
+static DataNode deque(PriorityQueue pq);
+static void update_by_idx(PriorityQueue pq, VertexNode idx_node, float new_key);
+static void showPQueue(PriorityQueue pq);
 
 static void BFS(Graph g, Vertex *goal);
 
@@ -195,7 +201,7 @@ isConnect(Vertex *v, VertexNode vnode)
     return FALSE;
 }
 
-static int
+static float
 costFunction(Vertex *v1, Vertex *v2)
 {
     return (sqrt(pow((v1->x-v2->x),2) + pow((v1->y-v2->y),2)));
@@ -266,6 +272,8 @@ newVertexNode(Vertex *vin)
     v->x = vin->x;
     v->y = vin->y;
     VertexNode vnode = (VertexNode) { .v = v, .head_a = NULL, .nA = 0 };
+    vnode.prev = (VertexNode *) malloc(sizeof(VertexNode));
+    MallocError(vnode.prev, error_msg[6]);
     return vnode;
 }
 
@@ -289,14 +297,16 @@ int InsertEdge(Graph g, Edge *e)
     }
     else if (i == NONEXIST || j == NONEXIST)    // p1 | p2 not in the graph
     {
-        tmp_idx1 = i == NONEXIST ? j : i;         // tmp_idx1 holds idx in the graph
+        // tmp_idx1 holds idx in the graph
+        tmp_idx1 = i == NONEXIST ? j : i;
         tmp_vtx1 = i == NONEXIST ? e->p2 : e->p1;
-        tmp_vtx2 = i == NONEXIST ? e->p1 : e->p2; // tmp_vtx2 holds vtx not in the graph
+        // tmp_vtx2 holds vtx not in the graph
+        tmp_vtx2 = i == NONEXIST ? e->p1 : e->p2;
         InsertAdjNode(tmp_vtx2, &g->vertices[tmp_idx1]);
         g->vertices[g->nV] = newVertexNode(tmp_vtx2);
         InsertAdjNode(tmp_vtx1, &g->vertices[g->nV++]);
     }
-    else                            // p1 & p2 in the graph
+    else                                        // p1 & p2 in the graph
     {
         if (isConnect(e->p1, g->vertices[j]))   // edge existed
             return OP_FAILURE;
@@ -311,6 +321,10 @@ int InsertEdge(Graph g, Edge *e)
 void DeleteEdge(Graph g, Edge *e)
 {
     assert(g != NULL);
+#ifdef DEBUG
+    printf("Delete edge (%d,%d) -- (%d,%d)\n", e->p1->x, e->p1->y, 
+            e->p2->x, e->p2->y);
+#endif
     int i, j;
     i = isContain(g, e->p1);
     j = isContain(g, e->p2);
@@ -324,6 +338,9 @@ void DeleteEdge(Graph g, Edge *e)
 
     DeleteAdjNode(e->p2, &g->vertices[i]);
     DeleteAdjNode(e->p1, &g->vertices[j]);
+#ifdef DEBUG
+    printf("%s\n", line_break);
+#endif
 }
 
 static Bool
@@ -364,7 +381,9 @@ void ReachableVertices(Graph g, Vertex *v)
 {
     assert(g != NULL);
     int i;
+#ifdef DEBUG
     printf("Reachable vertices for (%d, %d):\n", v->x, v->y);
+#endif
     for (i = 0; i < g->nV; i++)
     {
         if (veq(v, g->vertices[i].v))
@@ -374,42 +393,108 @@ void ReachableVertices(Graph g, Vertex *v)
             printf("(%d, %d) ", x(g->vertices[i]), y(g->vertices[i]));
         }
     }
-    printf("\n%s\n", line_break);
+    printf("\n");
+#ifdef DEBUG
+    printf("%s\n", line_break);
+#endif
+}
+
+int find_by_idx(DataNode dn[], int size, VertexNode vn)
+{
+    int idx = -1;
+    int i;
+    for (i = 0; i < size; i++)
+    {
+        if (veq(dn[i].vn.v, vn.v))
+            return i;
+    }
+    assert(idx != -1);
+    return idx;
 }
 
 // Add the time complexity analysis of ShortestPath() here
 void ShortestPath(Graph g, Vertex *u, Vertex *v)
 {
-    int i, idx1, idx2;
-    DataNode D[g->nV];
-    AdjNode *it;
+    int i, idx1, idx2, tmp;     // indexing
+    DataNode D[g->nV];          // D label
+    AdjNode *it;                // Adjacent list iterator
+    VertexNode vn;
+    VertexNode *ot;             // Previous path iterator
+    VertexNode paths[MAX_VERTICES];
     PriorityQueue pq = newPQueue();
 
+    if (isContain(g, u) == NONEXIST || isContain(g, v) == NONEXIST)
+        return;
+
+#ifdef DEBUG
+    printf("Shortest path between (%d,%d) and (%d,%d)\n", u->x, u->y, v->x, v->y);
+    printf("(%d,%d)\t--\n", u->x, u->y);
+#endif
+
+    // initialise D label array
     for (i = 0; i < g->nV; i++)
     {
-        if (veq(g->vertices[i].v, v))
-            D[i].k = 0.0;
+        if (veq(g->vertices[i].v, u))
+            D[i].k = 0;
         else
             D[i].k = INFINITY;
+
+        D[i].vn = g->vertices[i];
         enque(pq, g->vertices[i], D[i].k);
     }
 
+    // Dijkstra's Algorithm
     while (!isPQEmpty(pq))
     {
-        VertexNode vn = deque(pq).vn;
-        idx1 = isContain(g, vn.v);
-        if (veq(u, vn.v))
+        vn = deque(pq).vn;
+        tmp = isContain(g, vn.v);
+        idx1 = find_by_idx(D, g->nV, g->vertices[tmp]);
+        i = 0;
+        if (veq(v, vn.v))
         {
-            printf("%f\n", D[idx1].k);
-            return;
+#ifdef DEBUG
+            printf("\t-- (%d,%d) [%f] *\n", x(vn), y(vn), D[idx1].k);
+#endif
+            break;
         }
+#ifdef DEBUG
+        printf("\t-- (%d,%d) [%f]\n", x(D[idx1].vn), y(D[idx1].vn), D[idx1].k);
+#endif
         for (it = vn.head_a; it != NULL; it = it->next)
         {
-            idx2 = isContain(g, it->dest);
+            tmp = isContain(g, it->dest);
+            idx2 = find_by_idx(D, g->nV, g->vertices[tmp]);
             if (D[idx1].k + it->weight < D[idx2].k)
+            {
                 D[idx2].k = D[idx1].k + it->weight;
+                update_by_idx(pq, g->vertices[idx2], D[idx2].k);
+#ifdef DEBUG                
+                printf("\t\t-- (%d,%d) [%f]\n", it->dest->x, it->dest->y, 
+                        it->weight);
+#endif
+                D[idx2].vn.prev = &D[idx1].vn;
+            }
         }
     }
+
+    // print shortest path in order u -> v
+    paths[i++] = D[idx1].vn;
+    for (ot = D[idx1].vn.prev; ot->prev != NULL; ot = ot->prev)
+    {
+        paths[i++] = *ot;
+    }
+    if (i - 1 > 0)  // imply there is a path
+    {
+        for (tmp = i-1; tmp >= 0; tmp--)
+        {
+            printf("(%d,%d) ", x(paths[tmp]), y(paths[tmp]));
+        }
+        printf("\n");
+    }
+
+#ifdef DEBUG
+    printf("%s\n", line_break);
+#endif
 }
 
 // Add the time complexity analysis of FreeGraph() here
@@ -484,7 +569,9 @@ void ShowGraph(Graph g)
         return;
     }
     BFS(g, NULL);
+#ifdef DEBUG
     printf("%s\n", line_break);
+#endif
 }
 
 /************** Queue Implementation **************/
@@ -580,7 +667,6 @@ newPQueue()
 static void
 swap(DataNode *a, DataNode *b)
 {
-    // TODO: correctness?
     DataNode tmp = *a;
     *a = *b;
     *b = tmp;
@@ -634,6 +720,23 @@ MinHeapify(PriorityQueue pq, int idx)
 	}
 }
 
+static void
+update_by_idx(PriorityQueue pq, VertexNode idx_node, float new_key)
+{
+    int i;
+    for (i = 0; i < pq->size; i++)
+    {
+        if (veq(pq->data[i].vn.v, idx_node.v))
+        {
+            pq->data[i].k = new_key;
+            break;
+        }
+    }
+    // TODO: update in MinHeap()
+    // restore the MinHeap property by MinHeapify the parent index
+    MinHeapify(pq, parent(i));
+}
+
 static DataNode
 deque(PriorityQueue pq)
 {
@@ -649,6 +752,19 @@ deque(PriorityQueue pq)
     MinHeapify(pq, HEAD);
     
     return root;
+}
+
+static void
+showPQueue(PriorityQueue pq)
+{
+    printf("Showing priority queue\n");
+    int i;
+    DataNode dn;
+    for (i = 0; !isPQEmpty(pq); i++)
+    {
+        dn = deque(pq);
+        printf("(%d,%d) [%f]\n", x(dn.vn), y(dn.vn), dn.k);
+    }
 }
 /********** End of Priority Queue **********/
 
@@ -796,6 +912,10 @@ int main() //sample main for testing
     e_ptr->p1=v1;
     e_ptr->p2=v2;
     if (InsertEdge(g1, e_ptr)==0) printf("edge exists\n");
+
+    // Vertex test1 = (Vertex) {.x=0,.y=0};
+    // Vertex test2 = (Vertex) {.x=10,.y=10};
+    // ShortestPath(g1, &test1, &test2);
 
     // Create second connected component
     // Insert edge (20,4)-(20,10)
