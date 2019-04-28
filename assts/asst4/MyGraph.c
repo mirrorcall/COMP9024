@@ -134,6 +134,7 @@ static Bool isValid(DataNode parent, DataNode child);
 static void enque(PriorityQueue pq, VertexNode v, float k);
 static void MinHeapify(PriorityQueue pq, int idx);
 static DataNode deque(PriorityQueue pq);
+static void decreaseKey(PriorityQueue pq, int idx, float new_key);
 static void update_by_idx(PriorityQueue pq, VertexNode idx_node, float new_key);
 static void showPQueue(PriorityQueue pq);
 
@@ -720,6 +721,16 @@ MinHeapify(PriorityQueue pq, int idx)
 	}
 }
 
+void decreaseKey(PriorityQueue pq, int idx, float new_key)
+{
+    pq->data[idx].k = new_key;
+    while (idx != 0 && !isValid(pq->data[parent(idx)], pq->data[idx]))
+    {
+        swap(&pq->data[idx], &pq->data[parent(idx)]);
+        idx = parent(idx);
+    }
+}
+
 static void
 update_by_idx(PriorityQueue pq, VertexNode idx_node, float new_key)
 {
@@ -728,13 +739,14 @@ update_by_idx(PriorityQueue pq, VertexNode idx_node, float new_key)
     {
         if (veq(pq->data[i].vn.v, idx_node.v))
         {
-            pq->data[i].k = new_key;
+            decreaseKey(pq, i, -1);
             break;
         }
     }
     // TODO: update in MinHeap()
     // restore the MinHeap property by MinHeapify the parent index
-    MinHeapify(pq, parent(i));
+    DataNode modified = deque(pq);
+    enque(pq, modified.vn, new_key);
 }
 
 static DataNode
