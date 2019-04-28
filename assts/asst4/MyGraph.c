@@ -69,7 +69,6 @@ typedef struct GraphRep {   // graph header
 
 // simulated bool type
 typedef char Bool;
-
 // queue representation
 typedef struct QueueNode
 {
@@ -163,6 +162,10 @@ debug_info(Graph g, int i)
 }
 
 // Add the time complexity analysis of CreateEmptyGraph() here
+/**
+ * Time complexity: O(1)
+ * Simple malloc memory for all the main structure supporting graph's existence
+ */
 Graph CreateEmptyGraph()
 {
     // cast mallocs for the unity in main function
@@ -279,6 +282,14 @@ newVertexNode(Vertex *vin)
 }
 
 // Add the time complexity analysis of InsertEdge() here
+/**
+ * Time Complexity: O(V)
+ * Since the vertices V in the graph are implemented with the array, so the
+ * search would cost O(V) in the worst case for traversing all the of vertices, 
+ * hash map might be able to reduce the cost to O(1) for a relative small
+ * amount of vertices. The number of operations on inserting adjacent node
+ * are dominated by the number of vertices.
+ */
 int InsertEdge(Graph g, Edge *e)
 {
     assert(g != NULL);
@@ -319,6 +330,11 @@ int InsertEdge(Graph g, Edge *e)
 }
 
 // Add the time complexity analysis of DeleteEdge() here
+/**
+ * Time Complexity: O(V)
+ * Likewise, DeleteEdge also require traversing the vertex array and adjacent
+ * list respectively for V vertices in total.
+ */
 void DeleteEdge(Graph g, Edge *e)
 {
     assert(g != NULL);
@@ -378,6 +394,11 @@ isReachable(Graph g, Vertex *dest, VertexNode src)
 }
 
 // Add the time complexity analysis of ReachableVertices() here
+/**
+ * Time Complexity: O(V^2)
+ * Normally, should be O(V + E) with hash table or one-dimension graph. But
+ * here adjacent list have to iterated over each single vertex.
+ */
 void ReachableVertices(Graph g, Vertex *v)
 {
     assert(g != NULL);
@@ -414,6 +435,10 @@ int find_by_idx(DataNode dn[], int size, VertexNode vn)
 }
 
 // Add the time complexity analysis of ShortestPath() here
+/**
+ * Time Complexity: O(V^2)
+ * Likewise, could be optimised by A* algorithm.
+ */
 void ShortestPath(Graph g, Vertex *u, Vertex *v)
 {
     int i, idx1, idx2, tmp;     // indexing
@@ -499,6 +524,11 @@ void ShortestPath(Graph g, Vertex *u, Vertex *v)
 }
 
 // Add the time complexity analysis of FreeGraph() here
+/**
+ * Time Complexity: O(V)
+ * Otherthan free the vertex array and graph pointer, for each vertex, its
+ * adjacent list implying edge also needs to be freed.
+ */
 void FreeGraph(Graph g)
 {
     int i;
@@ -561,6 +591,11 @@ BFS(Graph g, Vertex *goal)
 }
 
 // Add the time complexity analysis of ShowGraph() here
+/**
+ * Time Complexity: O(E)
+ * Likewise go through all possible combinations, but only differ with if the 
+ * vertex is visited then stop.
+ */
 void ShowGraph(Graph g)
 {
     assert(g != NULL);
@@ -739,7 +774,8 @@ update_by_idx(PriorityQueue pq, VertexNode idx_node, float new_key)
     {
         if (veq(pq->data[i].vn.v, idx_node.v))
         {
-            decreaseKey(pq, i, -1);
+            // decrease key to NONEXIST data
+            decreaseKey(pq, i, NONEXIST);
             break;
         }
     }
