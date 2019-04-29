@@ -1,3 +1,9 @@
+/*****************************************
+ * Compile with DEBUG macro gives
+ * prettified output
+ * gcc -Werror -Wall -g -D DEBUG
+ *****************************************/
+
 #include <assert.h>
 
 #include <stdlib.h>
@@ -525,7 +531,7 @@ void ShortestPath(Graph g, Vertex *u, Vertex *v)
 
 // Add the time complexity analysis of FreeGraph() here
 /**
- * Time Complexity: O(V)
+ * Time Complexity: O(E) - 2 times nE operations because of undirected
  * Otherthan free the vertex array and graph pointer, for each vertex, its
  * adjacent list implying edge also needs to be freed.
  */
@@ -533,9 +539,9 @@ void FreeGraph(Graph g)
 {
     int i;
     AdjNode *j, *tmp;
-    for (i = 0; i < MAX_VERTICES; i++)
+    for (i = 0; i < g->nV; i++)
     {
-        j=g->vertices[i].head_a;
+        j = g->vertices[i].head_a;
         while (j != NULL)
         {
             tmp = j;
@@ -592,9 +598,9 @@ BFS(Graph g, Vertex *goal)
 
 // Add the time complexity analysis of ShowGraph() here
 /**
- * Time Complexity: O(E)
- * Likewise go through all possible combinations, but only differ with if the 
- * vertex is visited then stop.
+ * Time Complexity: O(V + E)
+ * Likewise go through all possible combinations vertices and edges, but only 
+ * differ with if the vertex is visited then stop.
  */
 void ShowGraph(Graph g)
 {
