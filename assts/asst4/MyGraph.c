@@ -1,7 +1,7 @@
 /*****************************************
  * Compile with DEBUG macro gives
  * prettified output
- * gcc -Werror -Wall -g -D DEBUG
+ * gcc -Werror -Wall -lm -g -D DEBUG
  *****************************************/
 
 #include <assert.h>
@@ -120,7 +120,10 @@ static const char *error_msg[9] =
     "priority queue creation failure",
     "data ndoe creation failure"
 };
+
+#ifdef DEBUG
 static const char *line_break = "-------------------------";
+#endif
 
 // private forward references - queue impl
 static Queue newQueue();
@@ -129,7 +132,6 @@ static Bool isEmpty(Queue q);
 static void push(Queue q, VertexNode vn);
 static QueueNode * pop();
 static void dropQueue(Queue q);
-static void showQueue(Queue q);
 
 // private forward references - prioirty queue impl
 static PriorityQueue newPQueue();
@@ -141,7 +143,11 @@ static void MinHeapify(PriorityQueue pq, int idx);
 static DataNode deque(PriorityQueue pq);
 static void decreaseKey(PriorityQueue pq, int idx, float new_key);
 static void update_by_idx(PriorityQueue pq, VertexNode idx_node, float new_key);
+
+#ifdef DEBUG
+static void showQueue(Queue q);
 static void showPQueue(PriorityQueue pq);
+#endif
 
 static void BFS(Graph g, Vertex *goal);
 
@@ -156,6 +162,7 @@ MallocError(void *ptr, const char *msg)
     }
 }
 
+#ifdef DEBUG
 static void
 debug_info(Graph g, int i)
 {
@@ -166,6 +173,7 @@ debug_info(Graph g, int i)
         printf("(%d, %d)\n", g->vertices[i].v->x, g->vertices[i].v->y);
     printf("=========================\n");
 }
+#endif
 
 // Add the time complexity analysis of CreateEmptyGraph() here
 /**
@@ -556,8 +564,9 @@ void FreeGraph(Graph g)
 static void
 BFS(Graph g, Vertex *goal)
 {
-    int i, idx;
-    Bool visited[MAX_VERTICES] = { FALSE };
+    int i, idx1, idx2;
+    // 2 dimensional graph records edge as visited
+    Bool visited[MAX_VERTICES][MAX_VERTICES] = { {FALSE, FALSE} };
     AdjNode *it;
     VertexNode vnode;
     Queue q = newQueue();
@@ -566,34 +575,39 @@ BFS(Graph g, Vertex *goal)
     for (i = 0; i < g->nV; i++)
     {
         // start from first vertex by default
-        visited[i] = TRUE;
+        visited[i][i] = TRUE;
         push(q, g->vertices[i]);
         while (!isEmpty(q))
         {
             qnode = pop(q);
+            idx1 = isContain(g, qnode->vn.v);
             if (qnode->vn.head_a == NULL)
             {   // single vertex without edges
                 printf("(%d, %d)\n", x(qnode->vn), y(qnode->vn));
+                free(qnode);
                 continue;
             }
             for (it = qnode->vn.head_a; it != NULL; it = it->next)
             {   // vertex with edges
-                idx = isContain(g, it->dest);
-                vnode = g->vertices[idx];
-                if (!visited[idx])
+                idx2 = isContain(g, it->dest);
+                vnode = g->vertices[idx2];
+                if (!visited[idx1][idx2])
                 {
+#ifdef DEBUG
                     printf("(%d, %d) - ", x(qnode->vn), y(qnode->vn));
                     printf("(%d, %d)\n", x(vnode), y(vnode));
+#else
+                    printf("(%d, %d), (%d, %d) ", x(qnode->vn), y(qnode->vn), 
+                            x(vnode), y(vnode));
+#endif
                     push(q, vnode);
-                    visited[idx] = TRUE;
+                    visited[idx1][idx2] = TRUE;
+                    visited[idx2][idx1] = TRUE;
                 }
             }
-            // free memory allocation for every used qnode
             free(qnode);
         }
     }
-    // free memory allocation for whatever left in queue
-    dropQueue(q);
 }
 
 // Add the time complexity analysis of ShowGraph() here
@@ -611,6 +625,7 @@ void ShowGraph(Graph g)
         return;
     }
     BFS(g, NULL);
+    printf("\n");
 #ifdef DEBUG
     printf("%s\n", line_break);
 #endif
@@ -681,6 +696,7 @@ dropQueue(Queue q)
     free(q);
 }
 
+#ifdef DEBUG
 static void
 showQueue(Queue q)
 {
@@ -692,6 +708,7 @@ showQueue(Queue q)
     printf("size:[%d]\n", q->size);
     printf("%s\n", line_break);
 }
+#endif
 /************** End of Queue **************/
 
 /****** Priority Queue Implementation ******/
@@ -808,6 +825,7 @@ deque(PriorityQueue pq)
     return root;
 }
 
+#ifdef DEBUG
 static void
 showPQueue(PriorityQueue pq)
 {
@@ -820,6 +838,7 @@ showPQueue(PriorityQueue pq)
         printf("(%d,%d) [%f]\n", x(dn.vn), y(dn.vn), dn.k);
     }
 }
+#endif
 /********** End of Priority Queue **********/
 
 int main() //sample main for testing 
