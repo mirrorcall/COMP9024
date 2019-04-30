@@ -149,8 +149,6 @@ static void showQueue(Queue q);
 static void showPQueue(PriorityQueue pq);
 #endif
 
-static void BFS(Graph g, Vertex *goal);
-
 // detect memory allocation error for <assert.h>
 static void
 MallocError(void *ptr, const char *msg)
@@ -193,6 +191,7 @@ Graph CreateEmptyGraph()
     return g;
 }
 
+/************** Helper functions **************/
 static int
 isContain(Graph g, Vertex *vin)
 {
@@ -224,9 +223,10 @@ costFunction(Vertex *v1, Vertex *v2)
 {
     return (sqrt(pow((v1->x-v2->x),2) + pow((v1->y-v2->y),2)));
 }
+/**************** End of Helper ****************/
 
 /********* Adjacent List Implmentation *********/
-static AdjNode *
+AdjNode *
 newAdjNode(Vertex *dest, Vertex *src)
 {
     AdjNode *adj = (AdjNode *) malloc(sizeof(AdjNode));
@@ -237,7 +237,7 @@ newAdjNode(Vertex *dest, Vertex *src)
     return adj;
 }
 
-static void
+void
 InsertAdjNode(Vertex *dest, VertexNode *src)
 {
     AdjNode *it  = src->head_a;
@@ -254,7 +254,7 @@ InsertAdjNode(Vertex *dest, VertexNode *src)
     src->nA++;
 }
 
-static void
+void
 DeleteAdjNode(Vertex *dest, VertexNode *src)
 {
     AdjNode *tmp, *it = src->head_a;
@@ -435,7 +435,10 @@ void ReachableVertices(Graph g, Vertex *v)
 #endif
 }
 
-int find_by_idx(DataNode dn[], int size, VertexNode vn)
+// utility function - convert index from vertices array held by graph to the
+// index of D label.
+static int
+find_by_idx(DataNode dn[], int size, VertexNode vn)
 {
     int idx = -1;
     int i;
@@ -583,7 +586,7 @@ BFS(Graph g, Vertex *goal)
             idx1 = isContain(g, qnode->vn.v);
             if (qnode->vn.head_a == NULL)
             {   // single vertex without edges
-                printf("(%d, %d)\n", x(qnode->vn), y(qnode->vn));
+                printf("(%d, %d)", x(qnode->vn), y(qnode->vn));
                 free(qnode);
                 continue;
             }
@@ -625,9 +628,10 @@ void ShowGraph(Graph g)
         return;
     }
     BFS(g, NULL);
-    printf("\n");
 #ifdef DEBUG
     printf("%s\n", line_break);
+#else
+    printf("\n");
 #endif
 }
 
